@@ -7,6 +7,7 @@ Rs = 287.058  # J/kg/K
 Rd = 461.523  # J/kg/K
 # others:
 T0_Kelvin = 273.15  # K
+VAPOR_PRESSURE = 2300  # Pa (assumption!)
 
 
 # mu_air = 17.24 * 10 ** (-6)  # [Pa*s]
@@ -17,7 +18,7 @@ def compute_mu_air(T):
     return mu_air
 
 
-def compute_density(p, T, phi=0, pv=0):
+def compute_density(p, T, phi=0, pv=VAPOR_PRESSURE):
     """
     Calculates desnity acoording to ideal gas law.
 

@@ -22,4 +22,4 @@ class TestCore(unittest.TestCase):
                                                                                          kappa=1.4,
                                                                                          Cguess=0.6183,
                                                                                          verbose=True)
-        self.assertAlmostEqual(vfr_value, 0.0229870400268)
+        self.assertAlmostEqual(vfr_value, 0.02302704683261634)

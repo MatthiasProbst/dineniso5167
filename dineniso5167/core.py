@@ -185,7 +185,8 @@ def compute_expansion_number(beta, p1, p2, kappa):
 
 
 def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
-                             kappa=1.4, Cguess=0.62, verbose=False):
+                             kappa=1.4, Cguess=0.62, residuum=0.1,
+                             verbose=False):
     """
     Computes the volume flow rate according to ISO 5167-2 Eq. (1)
 
@@ -228,7 +229,6 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
         print(f' (i) > {"Density of air: ":>{_str_count}} {rho_air:5.2f} kg/m^3')
         print(f' (i) > {"viscosity of air nu: ":>{_str_count}} {nu_air:5.2e} m^2/s')
     eps_res = 10 ** (-4)
-    residuum = 1
     j = 0
     while np.mean(residuum) > eps_res:
         vfr_value = _vfr(Cguess, beta, d, eps, dp, rho_air)  # [m^3/s]
@@ -242,17 +242,20 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
         if j > 999:
             print(_warningtext('maximum iterations reached/exiting while loop to calculate C'))
             break
-    print(f' (c) > {"flow velocity in pipe: ":>{_str_count}} {vfr_value / A_D:>3.2} m/s')
-    print(f' (c) > {"flow coefficient C: ":>{_str_count}} {C:>3.2}')
-    print(f' (c) > {"Reynolds number Re: ":>{_str_count}} {Re:>1.1e}')
-    print('------')
-    print(f' (c) > {"volume flow rate qv: ":>{_str_count}} {vfr_value:>7.4f} m^3/s '
-          f'({vfr_value * 3600:.1f} m^3/h)')
-    print(f' (c) > {"mass flow rate qm: ":>{_str_count}} {vfr_value * rho_air:>7.4f} kg/s '
-          f' ({vfr_value * rho_air * 3600:.1f} kg/h)')
 
     dp_loss = ((np.sqrt(1 - beta ** 4 * (1 - C ** 2)) - C * beta ** 2) / (
             np.sqrt(1 - beta ** 4 * (1 - C ** 2)) + C * beta ** 2) * dp)
-    print(f' (c) > {"Pressure loss of orifice: ":>{_str_count}} {dp_loss:>3.1f} Pa')
+
+    if verbose:
+        print(f' (c) > {"flow velocity in pipe: ":>{_str_count}} {vfr_value / A_D:>3.2} m/s')
+        print(f' (c) > {"flow coefficient C: ":>{_str_count}} {C:>3.2} (it took {j} iterations to converge)')
+        print(f' (c) > {"Reynolds number Re: ":>{_str_count}} {Re:>1.1e}')
+        print('------')
+        print(f' (c) > {"volume flow rate qv: ":>{_str_count}} {vfr_value:>7.4f} m^3/s '
+              f'({vfr_value * 3600:.1f} m^3/h)')
+        print(f' (c) > {"mass flow rate qm: ":>{_str_count}} {vfr_value * rho_air:>7.4f} kg/s '
+              f' ({vfr_value * rho_air * 3600:.1f} kg/h)')
+        print(f' (c) > {"Pressure loss of orifice: ":>{_str_count}} {dp_loss:>3.1f} Pa')
+
 
     return vfr_value, vfr_value_min, vfr_value_max, dp_loss

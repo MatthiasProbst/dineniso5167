@@ -7,12 +7,15 @@ Rs = 287.058  # J/kg/K
 Rd = 461.523  # J/kg/K
 # others:
 T0_Kelvin = 273.15  # K
-#mu_air = 17.24 * 10 ** (-6)  # [Pa*s]
+
+
+# mu_air = 17.24 * 10 ** (-6)  # [Pa*s]
 
 def compute_mu_air(T):
     """from https://fluids.readthedocs.io/fluids.atmosphere.html"""
-    mu_air = 1.458e-6*T**1.5/(T+110.4)
+    mu_air = 1.458e-6 * T ** 1.5 / (T + 110.4)
     return mu_air
+
 
 def compute_density(p, T, phi=0, pv=0):
     """
@@ -143,7 +146,7 @@ def compute_flow_coefficient(beta, D, Re):
                 beta ** 4 / (1 - beta ** 4)) - 0.031 * (M_s2 - 0.8 * M_s2 ** 1.1) * beta ** 1.3
 
     if D < 0.7112:  # [m]
-        C += 0.011 * (0.75 - beta) * (2.8 - D / 0.0254)   # note: in DIN it's 25.4 mm!
+        C += 0.011 * (0.75 - beta) * (2.8 - D / 0.0254)  # note: in DIN it's 25.4 mm!
 
     # note: uncertainty assuming beta, D, ReD and Ra/D to be free of error
     if 0.1 <= beta < 0.2:
@@ -188,7 +191,8 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
                              kappa=1.4, Cguess=0.62, residuum=0.1,
                              verbose=False):
     """
-    Computes the volume flow rate according to ISO 5167-2 Eq. (1)
+    Computes the volume flow rate according to ISO 5167-2 Eq. (1).
+    Note: verbose only works with float inputs!
 
     Parameters
     ----------
@@ -256,6 +260,5 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
         print(f' (c) > {"mass flow rate qm: ":>{_str_count}} {vfr_value * rho_air:>7.4f} kg/s '
               f' ({vfr_value * rho_air * 3600:.1f} kg/h)')
         print(f' (c) > {"Pressure loss of orifice: ":>{_str_count}} {dp_loss:>3.1f} Pa')
-
 
     return vfr_value, vfr_value_min, vfr_value_max, dp_loss

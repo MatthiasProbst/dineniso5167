@@ -11,6 +11,9 @@ class TestCore(unittest.TestCase):
         self.assertFalse(core.check_beta(13, 20))
         self.assertTrue(core.check_beta(60, 100))
 
+    def test_density(self):
+        self.assertEqual(round(core.compute_density(101325, 15.+core.T0_Kelvin, 0), 4), 1.225)
+
     def test_vfr(self):
         vfr_value, vfr_value_min, vfr_value_max, dp_loss = core.compute_volume_flow_rate(dp=100,
                                                                                          d=60.,

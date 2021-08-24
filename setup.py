@@ -1,11 +1,12 @@
 import setuptools
+from dineniso5167 import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="dineniso5167",
-    version='0.0.0',
+    version=__version__,
     author="Matthias Probst",
     author_email="matthias.probst@kit.edu",
     description="Implementation of DIN EN ISO 5167 to calculate volume flow rate using an orifice",

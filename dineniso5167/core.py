@@ -65,7 +65,7 @@ def compute_reynolds_number(u, d, nu):
     return u * d / nu
 
 
-def check_beta(d, D, unit='mm', mounting_type='flange'):
+def check_beta(d, D, unit, mounting_type='flange'):
     """
     verifies whether the diameter ratio beta is within the required bounds
     Note: For flange mounted orifices only!
@@ -207,10 +207,10 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
     qv : `array_linke`
         Volume flow rate in [m3/s]
     """
+    beta, _ = check_beta(d, D, length_unit)
     if length_unit == 'mm':
         d /= 1000
         D /= 1000
-    beta, _ = check_beta(d, D, length_unit)
     A_D = D ** 2 / 4 * np.pi  # [m2]
     if T < 100:
         T = Cel2Kel(T)

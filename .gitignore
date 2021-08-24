@@ -1,0 +1,24 @@
+*.xml
+*.iml
+*.pyc
+*-checkpoint.ipynb
+
+# build
+*.egg*
+build/
+dist/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# pyCharm project setting
+.idea
+.idea/
+
+# macOS DS indices
+.DS_STORE
+Thumbs.db
+
+# testdata
+testdata

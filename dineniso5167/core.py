@@ -20,22 +20,22 @@ def compute_mu_air(T):
 
 def compute_density(p, T, phi=0, pv=VAPOR_PRESSURE):
     """
-    Calculates desnity acoording to ideal gas law.
+    Calculates density according to ideal gas law.
 
     Parameters
     ----------
-    p : `float or array_like`
+    p : float or array_like
         air pressure [Pa]
-    T : `float or array_like`
+    T : float or array_like
         air temperature [K]
-    phi : `float or array_like`, optional=0
+    phi : float or array_like, optional=0
         relative humidity phi
-    pv : `float or array_like`, optional=0
+    pv : float or array_like, optional=0
         vapour pressure pv
 
     Returns
     -------
-    rho : `float or array_like`
+    rho : float or array_like
         Density
 
     """
@@ -56,8 +56,14 @@ def Cel2Kel(T):
 def Kel2Cel(T):
     """
     Converts kelvin to degree celsius
-    :param T: temperature in kelvin
-    :return: temperature in deg cel
+
+    Parameters
+    ----------
+    T: Temperature in kelvin
+
+    Returns
+    -------
+        Temperature in deg cel
     """
     return T - T0_Kelvin
 
@@ -71,28 +77,30 @@ def check_beta(d, D, unit, mounting_type='flange'):
     verifies whether the diameter ratio beta is within the required bounds
     Note: For flange mounted orifices only!
     Note: ReD >= 5000 and ReD >= 170 beta**2*D is not checked!
-    Note: Diamteres must be given in millimeters if not set
-    differently using `unit` parameter!
+    Note: Diameters must be given in millimeters if not set
+    differently using unit parameter!
 
     Parameters
     ----------
-    d : `float`
+    d : float
         Inner diameter if the orifice in [mm]
-    D : `float`
+    D : float
         Inner diameter of the pipe in [mm]
-    unit : `str`, optional='mm
+    unit : str, optional='mm
         Unit of diameters. Default is millimeters
-    mounting_type : `str`, optional='flange'
-        How the orifice is mounted. Currently only flange
+    mounting_type : str, optional='flange'
+        How the orifice is mounted. Currently, only flange
         is implemented!
 
     Returns
     -------
-    beta : `float`
+    beta : float
         value for beta
-    check : `bool`
+    check : bool
         verification result
     """
+    if D <= d:
+        raise ValueError(f'Inner diameter D of pipe is smaller than inner diameter of orifice! {D} <= {d}')
     beta = d / D
 
     if unit == 'm':
@@ -122,18 +130,18 @@ def compute_flow_coefficient(beta, D, Re):
 
     Parameters
     ----------
-    beta : `float`
+    beta : float
         Diameter ratio
-    D : `float`
+    D : float
         Inner diameter of the pipe in [m]
-    Re : `float`
+    Re : float
         Reynolds number
 
     Returns
     -------
-    C : `float`
+    C : float
         Flow coefficient C
-    uncertainty : `float`
+    uncertainty : float
         The uncertainty associated with C
 
     """
@@ -197,15 +205,15 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
 
     Parameters
     ----------
-    dp : `array_like`
-    d : `float`
+    dp : array_like
+    d : float
         Diameter
-    Cguess : `float`, optional=0.62
+    Cguess : float, optional=0.62
         Initial guess for flow coefficient
 
     Returns
     -------
-    qv : `array_linke`
+    qv : array_linke
         Volume flow rate in [m3/s]
     """
     beta, _ = check_beta(d, D, length_unit)

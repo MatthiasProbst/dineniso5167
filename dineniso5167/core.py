@@ -2,6 +2,7 @@ import numpy as np
 
 from .utils import _warningtext
 
+import warnings
 # specific gas constant
 Rs = 287.058  # J/kg/K
 Rd = 461.523  # J/kg/K
@@ -24,18 +25,18 @@ def compute_density(p, T, phi=0, pv=VAPOR_PRESSURE):
 
     Parameters
     ----------
-    p : `float or array_like`
+    p : float or array_like
         air pressure [Pa]
-    T : `float or array_like`
+    T : float or array_like
         air temperature [K]
-    phi : `float or array_like`, optional=0
+    phi : float or array_like, optional=0
         relative humidity phi
-    pv : `float or array_like`, optional=0
+    pv : float or array_like, optional=0
         vapour pressure pv
 
     Returns
     -------
-    rho : `float or array_like`
+    rho : float or array_like
         Density
 
     """
@@ -68,30 +69,35 @@ def compute_reynolds_number(u, d, nu):
 
 def check_beta(d, D, unit, mounting_type='flange'):
     """
-    verifies whether the diameter ratio beta is within the required bounds
-    Note: For flange mounted orifices only!
-    Note: ReD >= 5000 and ReD >= 170 beta**2*D is not checked!
-    Note: Diamteres must be given in millimeters if not set
-    differently using `unit` parameter!
+    Verifies whether the diameter ratio of diameters beta is within the required bounds
+    defined in DIN EN ISO 5167.
+    Beta must be in range [0.1, 0.75]
+    Inner diameter of orifice `d` must be larger than or equal to 12.5 mm
+    Inner diameter of pipe `D` must be in range [50, 1000] mm
 
     Parameters
     ----------
-    d : `float`
+    d : float
         Inner diameter if the orifice in [mm]
-    D : `float`
+    D : float
         Inner diameter of the pipe in [mm]
-    unit : `str`, optional='mm
+    unit : str, optional='mm
         Unit of diameters. Default is millimeters
-    mounting_type : `str`, optional='flange'
+    mounting_type : str, optional='flange'
         How the orifice is mounted. Currently only flange
         is implemented!
 
     Returns
     -------
-    beta : `float`
+    beta : float
         value for beta
-    check : `bool`
-        verification result
+
+
+    Notes
+    -----
+    For flange mounted orifices only!
+    ReD >= 5000 and ReD >= 170 beta**2*D is not checked!
+    Diameters must be given in millimeters if not set differently using unit parameter!
     """
     beta = d / D
 
@@ -102,17 +108,21 @@ def check_beta(d, D, unit, mounting_type='flange'):
         raise NotImplementedError('Only mounting type "flange" is implemented in this version!')
 
     if d <= 12.5:
-        print(_warningtext(f'Inner orifice diameter ({d} mm) is smaller than 12.5 mm!'))
-        return beta, False
+        warnings.warn(f'Inner orifice diameter ({d} mm) is smaller than 12.5 mm!')
+        return beta
     if D < 50 or D > 1000:
-        print(_warningtext(f'Inner pipe diameter ({d} mm) is outside of the valid range of [50, 1000] mm!'))
-        return beta, False
+        warnings.warn(f'Inner pipe diameter ({d} mm) is outside of the valid range of [50, 1000] mm!')
+        return beta
 
-    if beta >= 0.10 and beta <= 0.75:
-        return beta, True
+    if beta >= 0.10:
+        if 0.75 >= beta:
+            return beta
+        else:
+            warnings.warn(f'Value for beta ({beta}) is outside of the valid range [0.1, 0.75]!')
+            return beta
     else:
-        print(_warningtext(f'Value for beta ({beta}) is outside of the valid range [0.1, 0.75]!'))
-        return beta, False
+        warnings.warn(f'Value for beta ({beta}) is outside of the valid range [0.1, 0.75]!')
+        return beta
 
 
 def compute_flow_coefficient(beta, D, Re):
@@ -122,18 +132,18 @@ def compute_flow_coefficient(beta, D, Re):
 
     Parameters
     ----------
-    beta : `float`
+    beta : float
         Diameter ratio
-    D : `float`
+    D : float
         Inner diameter of the pipe in [m]
-    Re : `float`
+    Re : float
         Reynolds number
 
     Returns
     -------
-    C : `float`
+    C : float
         Flow coefficient C
-    uncertainty : `float`
+    uncertainty : float
         The uncertainty associated with C
 
     """
@@ -197,18 +207,18 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
 
     Parameters
     ----------
-    dp : `array_like`
-    d : `float`
+    dp : array_like
+    d : float
         Diameter
-    Cguess : `float`, optional=0.62
+    Cguess : float, optional=0.62
         Initial guess for flow coefficient
 
     Returns
     -------
-    qv : `array_linke`
+    qv : array_like
         Volume flow rate in [m3/s]
     """
-    beta, _ = check_beta(d, D, length_unit)
+    beta = check_beta(d, D, length_unit)
     if length_unit == 'mm':
         d /= 1000
         D /= 1000

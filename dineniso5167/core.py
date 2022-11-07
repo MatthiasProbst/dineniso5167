@@ -21,7 +21,7 @@ def compute_mu_air(T):
 
 def compute_density(p, T, phi=0, pv=VAPOR_PRESSURE):
     """
-    Calculates desnity acoording to ideal gas law.
+    Calculates density according to ideal gas law.
 
     Parameters
     ----------
@@ -57,8 +57,14 @@ def Cel2Kel(T):
 def Kel2Cel(T):
     """
     Converts kelvin to degree celsius
-    :param T: temperature in kelvin
-    :return: temperature in deg cel
+
+    Parameters
+    ----------
+    T: Temperature in kelvin
+
+    Returns
+    -------
+        Temperature in deg cel
     """
     return T - T0_Kelvin
 
@@ -67,8 +73,9 @@ def compute_reynolds_number(u, d, nu):
     return u * d / nu
 
 
-def check_beta(d, D, unit, mounting_type='flange'):
+def compute_beta(d, D, unit, mounting_type='flange'):
     """
+    Compute beta.
     Verifies whether the diameter ratio of diameters beta is within the required bounds
     defined in DIN EN ISO 5167.
     Beta must be in range [0.1, 0.75]
@@ -80,12 +87,11 @@ def check_beta(d, D, unit, mounting_type='flange'):
     d : float
         Inner diameter if the orifice in [mm]
     D : float
-        Inner diameter of the pipe in [mm]
+        Outer diameter of the pipe in [mm]
     unit : str, optional='mm
         Unit of diameters. Default is millimeters
     mounting_type : str, optional='flange'
-        How the orifice is mounted. Currently only flange
-        is implemented!
+        How the orifice is mounted. Currently, only flange
 
     Returns
     -------
@@ -99,6 +105,8 @@ def check_beta(d, D, unit, mounting_type='flange'):
     ReD >= 5000 and ReD >= 170 beta**2*D is not checked!
     Diameters must be given in millimeters if not set differently using unit parameter!
     """
+    if D <= d:
+        raise ValueError(f'Outer diameter D of pipe is smaller than inner diameter of orifice! {D} <= {d}')
     beta = d / D
 
     if unit == 'm':
@@ -111,7 +119,7 @@ def check_beta(d, D, unit, mounting_type='flange'):
         warnings.warn(f'Inner orifice diameter ({d} mm) is smaller than 12.5 mm!')
         return beta
     if D < 50 or D > 1000:
-        warnings.warn(f'Inner pipe diameter ({d} mm) is outside of the valid range of [50, 1000] mm!')
+        warnings.warn(f'Outer pipe diameter ({D} mm) is outside of the valid range of [50, 1000] mm!')
         return beta
 
     if beta >= 0.10:
@@ -218,7 +226,7 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
     qv : array_like
         Volume flow rate in [m3/s]
     """
-    beta = check_beta(d, D, length_unit)
+    beta = compute_beta(d, D, length_unit)
     if length_unit == 'mm':
         d /= 1000
         D /= 1000

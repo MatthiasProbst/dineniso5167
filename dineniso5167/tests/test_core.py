@@ -7,15 +7,14 @@ class TestCore(unittest.TestCase):
 
     def test_beta(self):
         with self.assertWarns(Warning):
-            core.check_beta(1, 12, 'mm')
+            core.compute_beta(1, 12, 'mm')
+        with self.assertRaises(ValueError):
+            core.compute_beta(20, 10, 'mm')
         with self.assertWarns(Warning):
-            core.check_beta(20, 10, 'mm')
-        with self.assertWarns(Warning):
-            core.check_beta(13, 20, 'mm')
-        self.assertEqual(1/12, core.check_beta(1, 12, 'mm'))
-        self.assertEqual(20/10, core.check_beta(20, 10, 'mm'))
-        self.assertEqual(13/20, core.check_beta(13, 20, 'mm'))
-        self.assertEqual(60/100, core.check_beta(60, 100, 'mm'))
+            core.compute_beta(13, 20, 'mm')
+        self.assertEqual(1/12, core.compute_beta(1, 12, 'mm'))
+        self.assertEqual(13/20, core.compute_beta(13, 20, 'mm'))
+        self.assertEqual(60/100, core.compute_beta(60, 100, 'mm'))
 
     def test_density(self):
         self.assertEqual(round(core.compute_density(101325, 15.+core.T0_Kelvin, 0), 4), 1.225)

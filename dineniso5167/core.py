@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 from .utils import _warningtext
@@ -39,6 +41,8 @@ def compute_density(p, T, phi=0, pv=VAPOR_PRESSURE):
         Density
 
     """
+    if np.mean(T) < 100:
+        T = Cel2Kel(T)
     Rf = Rs / (1 - phi * pv / p * (1 - Rs / Rd))
     rho = p / (Rf * T)
     return rho
@@ -196,9 +200,17 @@ def compute_expansion_number(beta, p1, p2, kappa):
     return eps, rel_uncertainty
 
 
-def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
-                             kappa=1.4, Cguess=0.62, residuum=0.1,
-                             verbose=False):
+def compute_volume_flow_rate(dp: Union[float, np.ndarray],
+                             d: float,
+                             D: float,
+                             length_unit: str,
+                             p1: Union[float, np.ndarray],
+                             T: Union[float, np.ndarray],
+                             phi: float = 0.,
+                             kappa: float = 1.4,
+                             C_guess: float = 0.62,
+                             residuum: float = 0.1,
+                             **kwargs):
     """
     Computes the volume flow rate according to ISO 5167-2 Eq. (1).
     Note: verbose only works with float inputs!
@@ -208,27 +220,32 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
     dp : array_like
     d : float
         Diameter
-    Cguess : float, optional=0.62
+    C_guess : float, optional=0.62
         Initial guess for flow coefficient
 
     Returns
     -------
-    qv : array_linke
+    qv : array_like
         Volume flow rate in [m3/s]
     """
+    verbose = kwargs.get('verbose', False)
     beta, _ = check_beta(d, D, length_unit)
     if length_unit == 'mm':
         d /= 1000
         D /= 1000
     A_D = D ** 2 / 4 * np.pi  # [m2]
-    if T < 100:
-        T = Cel2Kel(T)
+    if isinstance(T, float):
+        if T < 100:
+            T = Cel2Kel(T)
+    else:
+        if np.mean(T) < 100:
+            T = Cel2Kel(T)
     rho_air = compute_density(p=p1, T=T, phi=phi)  # p [Pa], T [K], phi [-]
     mu_air = compute_mu_air(T)
     nu_air = mu_air / rho_air  # [m**2/s]
     p2 = p1 + dp
 
-    eps, eps_runcertainty = compute_expansion_number(beta, p1, p2, kappa)
+    eps, eps_uncertainty = compute_expansion_number(beta, p1, p2, kappa)
 
     _str_count = 32
     if verbose:
@@ -236,21 +253,27 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
         print(f' (i) > {"Inner diameter pipe D: ":>{_str_count}} {D} mm')
         print(f' (c) > {"beta=d/D: ":>{_str_count}} {beta}')
         print(f' (i) > {"Temperature: ":>{_str_count}} {T} K')
-        print(f' (i) > {"Pressure Difference: ":>{_str_count}} {dp} Pa')
-        print(f' (i) > {"Absolute Pressure p1: ":>{_str_count}} {p1} Pa')
+        if isinstance(dp, float):
+            print(f' (i) > {"Pressure Difference: ":>{_str_count}} {dp} Pa')
+        else:
+            print(f' (i) > {"Pressure Difference: ":>{_str_count}} {np.mean(dp)} Pa')
+        if isinstance(p1, float):
+            print(f' (i) > {"Absolute Pressure p1: ":>{_str_count}} {p1} Pa')
+        else:
+            print(f' (i) > {"Absolute Pressure p1: ":>{_str_count}} {np.mean(p1)} Pa')
         print(f' (i) > {"Rel. humidity phi: ":>{_str_count}} {phi * 100} %')
-        print(f' (i) > {"Density of air: ":>{_str_count}} {rho_air:5.2f} kg/m^3')
-        print(f' (i) > {"viscosity of air nu: ":>{_str_count}} {nu_air:5.2e} m^2/s')
+        print(f' (i) > {"Density of air: ":>{_str_count}} {np.mean(rho_air):5.2f} kg/m^3')
+        print(f' (i) > {"viscosity of air nu: ":>{_str_count}} {np.mean(nu_air):5.2e} m^2/s')
     eps_res = 10 ** (-4)
     j = 0
     while np.mean(residuum) > eps_res:
-        vfr_value = _vfr(Cguess, beta, d, eps, dp, rho_air)  # [m^3/s]
+        vfr_value = _vfr(C_guess, beta, d, eps, dp, rho_air)  # [m^3/s]
         Re = compute_reynolds_number(vfr_value / A_D, D, nu_air)
         C, C_err = compute_flow_coefficient(beta, D, Re)
-        vfr_value_max = _vfr(Cguess + C_err, beta, d, eps + eps_runcertainty, dp, rho_air)
-        vfr_value_min = _vfr(Cguess - C_err, beta, d, eps - eps_runcertainty, dp, rho_air)
-        residuum = abs(C - Cguess)
-        Cguess = C
+        vfr_value_max = _vfr(C_guess + C_err, beta, d, eps + eps_uncertainty, dp, rho_air)
+        vfr_value_min = _vfr(C_guess - C_err, beta, d, eps - eps_uncertainty, dp, rho_air)
+        residuum = abs(C - C_guess)
+        C_guess = C
         j += 1
         if j > 999:
             print(_warningtext('maximum iterations reached/exiting while loop to calculate C'))
@@ -260,14 +283,14 @@ def compute_volume_flow_rate(dp, d, D, length_unit, p1, T, phi=0,
             np.sqrt(1 - beta ** 4 * (1 - C ** 2)) + C * beta ** 2) * dp)
 
     if verbose:
-        print(f' (c) > {"flow velocity in pipe: ":>{_str_count}} {vfr_value / A_D:>3.2} m/s')
-        print(f' (c) > {"flow coefficient C: ":>{_str_count}} {C:>3.2} (it took {j} iterations to converge)')
-        print(f' (c) > {"Reynolds number Re: ":>{_str_count}} {Re:>1.1e}')
+        print(f' (c) > {"flow velocity in pipe: ":>{_str_count}} {np.mean(vfr_value) / A_D:>3.2} m/s')
+        print(f' (c) > {"flow coefficient C: ":>{_str_count}} {np.mean(C):>3.2} (it took {j} iterations to converge)')
+        print(f' (c) > {"Reynolds number Re: ":>{_str_count}} {np.mean(Re):>1.1e}')
         print('------')
-        print(f' (c) > {"volume flow rate qv: ":>{_str_count}} {vfr_value:>7.4f} m^3/s '
-              f'({vfr_value * 3600:.1f} m^3/h)')
-        print(f' (c) > {"mass flow rate qm: ":>{_str_count}} {vfr_value * rho_air:>7.4f} kg/s '
-              f' ({vfr_value * rho_air * 3600:.1f} kg/h)')
-        print(f' (c) > {"Pressure loss of orifice: ":>{_str_count}} {dp_loss:>3.1f} Pa')
+        print(f' (c) > {"volume flow rate qv: ":>{_str_count}} {np.mean(vfr_value):>7.4f} m^3/s '
+              f'({np.mean(vfr_value) * 3600:.1f} m^3/h)')
+        print(f' (c) > {"mass flow rate qm: ":>{_str_count}} {np.mean(vfr_value * rho_air):>7.4f} kg/s '
+              f' ({np.mean(vfr_value * rho_air) * 3600:.1f} kg/h)')
+        print(f' (c) > {"Pressure loss of orifice: ":>{_str_count}} {np.mean(dp_loss):>3.1f} Pa')
 
     return vfr_value, vfr_value_min, vfr_value_max, dp_loss

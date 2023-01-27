@@ -1,10 +1,10 @@
+import warnings
 from typing import Union
 
 import numpy as np
 
 from .utils import _warningtext
 
-import warnings
 # specific gas constant
 Rs = 287.058  # J/kg/K
 Rd = 461.523  # J/kg/K
@@ -262,7 +262,10 @@ def compute_volume_flow_rate(dp: Union[float, np.ndarray],
         print(f' (i) > {"Inner diameter orifice d: ":>{_str_count}} {d} mm')
         print(f' (i) > {"Inner diameter pipe D: ":>{_str_count}} {D} mm')
         print(f' (c) > {"beta=d/D: ":>{_str_count}} {beta}')
-        print(f' (i) > {"Temperature: ":>{_str_count}} {T} K')
+        if isinstance(T, float):
+            print(f' (i) > {"Temperature: ":>{_str_count}} {T} K')
+        else:
+            print(f' (i) > {"Temperature: ":>{_str_count}} {np.mean(T)} K')
         if isinstance(dp, float):
             print(f' (i) > {"Pressure Difference: ":>{_str_count}} {dp} Pa')
         else:

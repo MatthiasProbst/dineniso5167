@@ -1,7 +1,6 @@
+import numpy as np
 import warnings
 from typing import Union
-
-import numpy as np
 
 from .utils import _warningtext
 
@@ -42,8 +41,8 @@ def compute_density(p, T, phi=0, pv=VAPOR_PRESSURE):
         Density
 
     """
-    if np.mean(T) < 100:
-        T = Cel2Kel(T)
+    # if np.mean(T) < 100:
+    #     T = Cel2Kel(T)
     Rf = Rs / (1 - phi * pv / p * (1 - Rs / Rd))
     rho = p / (Rf * T)
     return rho
@@ -190,7 +189,8 @@ def compute_flow_coefficient(beta, D, Re):
 
 def _vfr(C_0, beta, d, eps, dp, rho):
     """
-    Calculates volume flow rate according to DIN EN ISO 5167
+    Calculates volume flow rate according to DIN EN ISO 5167.
+    Note, that the absolute value of dp is used although an orifice should only be used for dp > 0!
     :param C_0:
     :param beta:
     :param d:
@@ -199,7 +199,7 @@ def _vfr(C_0, beta, d, eps, dp, rho):
     :param rho:
     :return:
     """
-    return C_0 / (np.sqrt(1 - beta ** 4)) * eps * np.pi / 4 * d ** 2 * np.sqrt(2 * dp / rho)  # [m^3/s]
+    return C_0 / (np.sqrt(1 - beta ** 4)) * eps * np.pi / 4 * d ** 2 * np.sqrt(2 * np.abs(dp) / rho)  # [m^3/s]
 
 
 def compute_expansion_number(beta, p1, p2, kappa):
@@ -211,8 +211,8 @@ def compute_expansion_number(beta, p1, p2, kappa):
 
 
 def compute_volume_flow_rate(dp: Union[float, np.ndarray],
-                             d: float,
-                             D: float,
+                             d_orifice: float,
+                             d_pipe: float,
                              length_unit: str,
                              p1: Union[float, np.ndarray],
                              T: Union[float, np.ndarray],
@@ -239,11 +239,11 @@ def compute_volume_flow_rate(dp: Union[float, np.ndarray],
         Volume flow rate in [m3/s]
     """
     verbose = kwargs.get('verbose', False)
-    beta = compute_beta(d, D, length_unit)
+    beta = compute_beta(d_orifice, d_pipe, length_unit)
     if length_unit == 'mm':
-        d /= 1000
-        D /= 1000
-    A_D = D ** 2 / 4 * np.pi  # [m2]
+        d_orifice /= 1000
+        d_pipe /= 1000
+    A_D = d_orifice ** 2 / 4 * np.pi  # [m2]
     if isinstance(T, float):
         if T < 100:
             T = Cel2Kel(T)
@@ -259,8 +259,8 @@ def compute_volume_flow_rate(dp: Union[float, np.ndarray],
 
     _str_count = 32
     if verbose:
-        print(f' (i) > {"Inner diameter orifice d: ":>{_str_count}} {d} mm')
-        print(f' (i) > {"Inner diameter pipe D: ":>{_str_count}} {D} mm')
+        print(f' (i) > {"Inner diameter orifice d: ":>{_str_count}} {d_orifice} mm')
+        print(f' (i) > {"Inner diameter pipe D: ":>{_str_count}} {d_pipe} mm')
         print(f' (c) > {"beta=d/D: ":>{_str_count}} {beta}')
         if isinstance(T, float):
             print(f' (i) > {"Temperature: ":>{_str_count}} {T} K')
@@ -280,11 +280,11 @@ def compute_volume_flow_rate(dp: Union[float, np.ndarray],
     eps_res = 10 ** (-4)
     j = 0
     while np.mean(residuum) > eps_res:
-        vfr_value = _vfr(C_guess, beta, d, eps, dp, rho_air)  # [m^3/s]
-        Re = compute_reynolds_number(vfr_value / A_D, D, nu_air)
-        C, C_err = compute_flow_coefficient(beta, D, Re)
-        vfr_value_max = _vfr(C_guess + C_err, beta, d, eps + eps_uncertainty, dp, rho_air)
-        vfr_value_min = _vfr(C_guess - C_err, beta, d, eps - eps_uncertainty, dp, rho_air)
+        vfr_value = _vfr(C_guess, beta, d_orifice, eps, dp, rho_air)  # [m^3/s]
+        Re = compute_reynolds_number(vfr_value / A_D, d_pipe, nu_air)
+        C, C_err = compute_flow_coefficient(beta, d_pipe, Re)
+        vfr_value_max = _vfr(C_guess + C_err, beta, d_orifice, eps + eps_uncertainty, dp, rho_air)
+        vfr_value_min = _vfr(C_guess - C_err, beta, d_orifice, eps - eps_uncertainty, dp, rho_air)
         residuum = abs(C - C_guess)
         C_guess = C
         j += 1

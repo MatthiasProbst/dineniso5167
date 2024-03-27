@@ -1,6 +1,7 @@
-import numpy as np
 import warnings
 from typing import Union
+
+import numpy as np
 
 from .utils import _warningtext
 
@@ -129,10 +130,10 @@ def compute_beta(d, D, unit, mounting_type='flange'):
         if 0.75 >= beta:
             return beta
         else:
-            warnings.warn(f'Value for beta ({beta}) is outside of the valid range [0.1, 0.75]!')
+            warnings.warn(f'Parameter for beta ({beta}) is outside of the valid range [0.1, 0.75]!')
             return beta
     else:
-        warnings.warn(f'Value for beta ({beta}) is outside of the valid range [0.1, 0.75]!')
+        warnings.warn(f'Parameter for beta ({beta}) is outside of the valid range [0.1, 0.75]!')
         return beta
 
 
@@ -199,7 +200,11 @@ def _vfr(C_0, beta, d, eps, dp, rho):
     :param rho:
     :return:
     """
-    return C_0 / (np.sqrt(1 - beta ** 4)) * eps * np.pi / 4 * d ** 2 * np.sqrt(2 * np.abs(dp) / rho)  # [m^3/s]
+    if np.sum(dp < 0) > 0:
+        warnings.warn('Negative pressure difference detected! Using absolute value of pressure difference!')
+        return C_0 / (np.sqrt(1 - beta ** 4)) * eps * np.pi / 4 * d ** 2 * np.sqrt(2 * np.abs(dp) / rho) * np.sign(
+            dp)  # [m^3/s]
+    return C_0 / (np.sqrt(1 - beta ** 4)) * eps * np.pi / 4 * d ** 2 * np.sqrt(2 * dp / rho)  # [m^3/s]
 
 
 def compute_expansion_number(beta, p1, p2, kappa):
@@ -281,7 +286,7 @@ def compute_volume_flow_rate(dp: Union[float, np.ndarray],
     j = 0
     while np.mean(residuum) > eps_res:
         vfr_value = _vfr(C_guess, beta, d_orifice, eps, dp, rho_air)  # [m^3/s]
-        Re = compute_reynolds_number(vfr_value / A_D, d_pipe, nu_air)
+        Re = compute_reynolds_number(np.nanmean(vfr_value) / A_D, d_pipe, nu_air)
         C, C_err = compute_flow_coefficient(beta, d_pipe, Re)
         vfr_value_max = _vfr(C_guess + C_err, beta, d_orifice, eps + eps_uncertainty, dp, rho_air)
         vfr_value_min = _vfr(C_guess - C_err, beta, d_orifice, eps - eps_uncertainty, dp, rho_air)
